@@ -91,6 +91,8 @@ level_start_time = 0
 flash_color = None
 flash_start_time = 0
 
+reveal_answer = None
+
 # --------------------------------------------------
 # HELPERS
 # --------------------------------------------------
@@ -365,42 +367,56 @@ def draw_ready_screen():
 
     mouse_pos = pygame.mouse.get_pos()
 
-    button_rect = pygame.Rect(
+    # START BUTTON
+    start_button = pygame.Rect(
         WIDTH // 2 - 120,
-        HEIGHT // 2 - 40,
+        HEIGHT // 2 - 60,
         240,
         80
     )
 
-    color = BUTTON_COLOR
+    start_color = BUTTON_COLOR
+    if start_button.collidepoint(mouse_pos):
+        start_color = BUTTON_HOVER
 
-    if button_rect.collidepoint(mouse_pos):
-        color = BUTTON_HOVER
+    pygame.draw.rect(screen, start_color, start_button)
+    pygame.draw.rect(screen, TEXT_COLOR, start_button, 2)
 
-    pygame.draw.rect(
-        screen,
-        color,
-        button_rect
-    )
-
-    pygame.draw.rect(
-        screen,
-        TEXT_COLOR,
-        button_rect,
-        2
-    )
-
-    ready_text = font_medium.render(
+    start_text = font_medium.render(
         "START",
         True,
         TEXT_COLOR
     )
 
     screen.blit(
-        ready_text,
-        ready_text.get_rect(
-            center=button_rect.center
-        )
+        start_text,
+        start_text.get_rect(center=start_button.center)
+    )
+
+    # QUIT BUTTON
+    quit_button = pygame.Rect(
+        WIDTH // 2 - 120,
+        HEIGHT // 2 + 40,
+        240,
+        80
+    )
+
+    quit_color = BUTTON_COLOR
+    if quit_button.collidepoint(mouse_pos):
+        quit_color = BUTTON_HOVER
+
+    pygame.draw.rect(screen, quit_color, quit_button)
+    pygame.draw.rect(screen, TEXT_COLOR, quit_button, 2)
+
+    quit_text = font_medium.render(
+        "QUIT",
+        True,
+        TEXT_COLOR
+    )
+
+    screen.blit(
+        quit_text,
+        quit_text.get_rect(center=quit_button.center)
     )
 
     instructions = font_small.render(
@@ -414,12 +430,12 @@ def draw_ready_screen():
         instructions.get_rect(
             center=(
                 WIDTH // 2,
-                HEIGHT // 2 + 90
+                HEIGHT // 2 + 160
             )
         )
     )
 
-    return button_rect
+    return start_button, quit_button
 
 
 def draw_center_message(message):
@@ -462,24 +478,36 @@ while running:
             reset_game()
             continue
 
-        # READY SCREEN
+        # -----------------------------------------
+        # READY SCREEN INPUT
+        # -----------------------------------------
         if state == STATE_READY:
 
-            button = pygame.Rect(
+            start_button = pygame.Rect(
                 WIDTH // 2 - 120,
-                HEIGHT // 2 - 40,
+                HEIGHT // 2 - 60,
+                240,
+                80
+            )
+
+            quit_button = pygame.Rect(
+                WIDTH // 2 - 120,
+                HEIGHT // 2 + 40,
                 240,
                 80
             )
 
             if event.type == pygame.MOUSEBUTTONDOWN:
 
-                if button.collidepoint(event.pos):
+                if start_button.collidepoint(event.pos):
 
                     level = 1
                     state = STATE_PLAYING
-
                     start_level()
+
+                elif quit_button.collidepoint(event.pos):
+
+                    running = False
 
             elif event.type == pygame.KEYDOWN:
 
@@ -487,10 +515,15 @@ while running:
 
                     level = 1
                     state = STATE_PLAYING
-
                     start_level()
 
-        # PLAYING
+                elif event.key == pygame.K_q:
+
+                    running = False
+
+        # -----------------------------------------
+        # PLAYING INPUT
+        # -----------------------------------------
         elif state == STATE_PLAYING:
 
             if event.type == pygame.KEYDOWN:
@@ -539,7 +572,7 @@ while running:
     # DRAW
     if state == STATE_READY:
 
-        draw_ready_screen()
+        start_button, quit_button = draw_ready_screen()
 
     elif state == STATE_PLAYING:
 
@@ -549,6 +582,11 @@ while running:
         ) / 1000
 
         if elapsed >= LEVEL_TIME:
+
+            trigger_flash((255, 220, 0))  # yellow reveal flash
+
+            reveal_answer = matching_number
+
             state = STATE_LOSE
 
         draw_progress_bar()
@@ -563,6 +601,18 @@ while running:
     elif state == STATE_LOSE:
 
         draw_center_message("TIMES UP!")
+
+        if reveal_answer is not None:
+            answer_text = font_large.render(
+                str(reveal_answer),
+                True,
+                (255, 255, 120)
+            )
+
+            screen.blit(
+                answer_text,
+                answer_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 120))
+            )
 
     draw_flash()
 
